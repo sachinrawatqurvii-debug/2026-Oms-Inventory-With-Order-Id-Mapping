@@ -100,46 +100,167 @@ const ZeroRack = () => {
         });
     };
 
+    // const handleExportMatchedData = () => {
+    //     if (data.length === 0 || rackSpaceData.length === 0) {
+    //         setMessage("Please upload and parse both CSV files first.");
+    //         return;
+    //     }
+
+    //     // Function to generate rack spaces from pattern (AA1 to AA20)
+    //     const generateRackSpacesFromPattern = (pattern) => {
+    //         const rackSpaces = [];
+    //         for (let i = 1; i <= 20; i++) {
+    //             rackSpaces.push(`${pattern}${i}`);
+    //         }
+    //         return rackSpaces;
+    //     };
+
+    //     // Check if any rack space data contains patterns (like AA, BB, etc.)
+    //     const rackSpacePatterns = rackSpaceData
+    //         .map(r => r.rackSpace)
+    //         .filter(space => /^[A-Za-z]+$/.test(space))
+    //         .filter((pattern, index, self) => self.indexOf(pattern) === index);
+
+    //     let allRackSpacesToMatch = new Set(rackSpaceData.map((r) => r.rackSpace));
+
+    //     // If patterns found, generate rack spaces for them
+    //     if (rackSpacePatterns.length > 0) {
+    //         rackSpacePatterns.forEach(pattern => {
+    //             const generatedSpaces = generateRackSpacesFromPattern(pattern);
+    //             generatedSpaces.forEach(space => allRackSpacesToMatch.add(space));
+    //         });
+    //     }
+
+    //     const matched = data.filter((d) => allRackSpacesToMatch.has(d.rackSpace));
+
+    //     if (matched.length === 0) {
+    //         const mainRackSpaces = data.map(d => d.rackSpace).slice(0, 5);
+    //         const sampleRackSpaces = Array.from(allRackSpacesToMatch).slice(0, 10);
+
+    //         setMessage(`❌ No matching Rack Spaces found! 
+    //             Sample Main: ${mainRackSpaces.join(', ')} 
+    //             Looking for: ${sampleRackSpaces.join(', ')}`);
+    //         return;
+    //     }
+
+    //     // Create CSV with cleaned rackSpace and skuCode
+    //     const exportData = matched.map(item => ({
+    //         "DropshipWarehouseId": 22784,
+    //         "Item SkuCode": item.skuCode,
+    //         "InventoryAction": "RESET",
+    //         "QtyIncludesBlocked": "",
+    //         "Qty": 0,
+    //         "RackSpace": `${item.rackSpace}`,
+    //         "Last Purchase Price": "",
+    //         "Notes": ""
+    //     }));
+
+    //     const csv = Papa.unparse(exportData, {
+    //         columns: ["DropshipWarehouseId", "Item SkuCode", "InventoryAction", "QtyIncludesBlocked", "Qty", "RackSpace", "Last Purchase Price", "Notes"]
+    //     });
+
+    //     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    //     const url = URL.createObjectURL(blob);
+    //     const link = document.createElement("a");
+    //     link.href = url;
+    //     link.setAttribute("download", `UpdateInStockQtyAnd_orLastPurchasePrice - ${new Date().getTime()}.csv`);
+    //     document.body.appendChild(link);
+    //     link.click();
+    //     document.body.removeChild(link);
+
+    //     setMessage(`✅ Downloaded ${matched.length} matched rows. Generated patterns: ${rackSpacePatterns.join(', ')}`);
+    // };
+
+    // Show matched data in table
     const handleExportMatchedData = () => {
         if (data.length === 0 || rackSpaceData.length === 0) {
             setMessage("Please upload and parse both CSV files first.");
             return;
         }
 
-        // Function to generate rack spaces from pattern (AA1 to AA20)
+        // Function to generate rack spaces from pattern
         const generateRackSpacesFromPattern = (pattern) => {
             const rackSpaces = [];
-            for (let i = 1; i <= 20; i++) {
-                rackSpaces.push(`${pattern}${i}`);
+
+            // Check if pattern is alphabets only (A, AA, BB, etc.)
+            if (/^[A-Za-z]+$/.test(pattern)) {
+                // Generate A1 to A20
+                for (let i = 1; i <= 20; i++) {
+                    rackSpaces.push(`${pattern}${i}`);
+                }
             }
+            // Check if pattern is numbers only (1, 2, 10, etc.)
+            else if (/^\d+$/.test(pattern)) {
+                // Generate 1-A to 1-R (A to R = 18 letters)
+                const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R'];
+                letters.forEach(letter => {
+                    rackSpaces.push(`${pattern}-${letter}`);
+                });
+            }
+            // For mixed patterns like A1, B2, etc., don't generate anything
+            // Just return the pattern itself in an array
+            else {
+                rackSpaces.push(pattern);
+            }
+
             return rackSpaces;
         };
 
-        // Check if any rack space data contains patterns (like AA, BB, etc.)
-        const rackSpacePatterns = rackSpaceData
-            .map(r => r.rackSpace)
-            .filter(space => /^[A-Za-z]+$/.test(space))
-            .filter((pattern, index, self) => self.indexOf(pattern) === index);
-
+        // Get all unique rack spaces from uploaded data
         let allRackSpacesToMatch = new Set(rackSpaceData.map((r) => r.rackSpace));
 
-        // If patterns found, generate rack spaces for them
-        if (rackSpacePatterns.length > 0) {
-            rackSpacePatterns.forEach(pattern => {
-                const generatedSpaces = generateRackSpacesFromPattern(pattern);
-                generatedSpaces.forEach(space => allRackSpacesToMatch.add(space));
-            });
-        }
+        // Check for patterns and generate additional rack spaces
+        const rackSpacePatterns = rackSpaceData
+            .map(r => r.rackSpace)
+            .filter((pattern, index, self) => self.indexOf(pattern) === index); // Get unique
 
-        const matched = data.filter((d) => allRackSpacesToMatch.has(d.rackSpace));
+        // Generate additional rack spaces for patterns
+        const additionalRackSpaces = [];
+
+        rackSpacePatterns.forEach(pattern => {
+            const generatedSpaces = generateRackSpacesFromPattern(pattern);
+            generatedSpaces.forEach(space => {
+                additionalRackSpaces.push(space);
+                allRackSpacesToMatch.add(space);
+            });
+        });
+
+        // Now match the data
+        const matched = data.filter((d) => {
+            // Check if the rack space matches directly
+            if (allRackSpacesToMatch.has(d.rackSpace)) {
+                return true;
+            }
+
+            // Also check if rack space matches any pattern
+            // For example: if pattern is "1" and rack space is "1-A", it should match
+            for (const pattern of rackSpacePatterns) {
+                // For number patterns (1, 2, etc.), match "1-A", "1-B", etc.
+                if (/^\d+$/.test(pattern)) {
+                    const patternRegex = new RegExp(`^${pattern}-[A-R]$`, 'i');
+                    if (patternRegex.test(d.rackSpace)) {
+                        return true;
+                    }
+                }
+                // For alphabet patterns (A, AA, etc.), match "A1", "A2", etc.
+                else if (/^[A-Za-z]+$/.test(pattern)) {
+                    const patternRegex = new RegExp(`^${pattern}\\d+$`, 'i');
+                    if (patternRegex.test(d.rackSpace)) {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        });
 
         if (matched.length === 0) {
             const mainRackSpaces = data.map(d => d.rackSpace).slice(0, 5);
             const sampleRackSpaces = Array.from(allRackSpacesToMatch).slice(0, 10);
 
             setMessage(`❌ No matching Rack Spaces found! 
-                Sample Main: ${mainRackSpaces.join(', ')} 
-                Looking for: ${sampleRackSpaces.join(', ')}`);
+            Sample Main: ${mainRackSpaces.join(', ')} 
+            Looking for: ${sampleRackSpaces.join(', ')}`);
             return;
         }
 
@@ -168,10 +289,13 @@ const ZeroRack = () => {
         link.click();
         document.body.removeChild(link);
 
-        setMessage(`✅ Downloaded ${matched.length} matched rows. Generated patterns: ${rackSpacePatterns.join(', ')}`);
+        const generatedInfo = additionalRackSpaces.length > 0
+            ? `Generated patterns: ${rackSpacePatterns.join(', ')}`
+            : 'No patterns generated';
+
+        setMessage(`✅ Downloaded ${matched.length} matched rows. ${generatedInfo}`);
     };
 
-    // Show matched data in table
     const getMatchedData = () => {
         if (data.length === 0 || rackSpaceData.length === 0) return [];
 

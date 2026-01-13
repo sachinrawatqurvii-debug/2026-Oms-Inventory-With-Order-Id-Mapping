@@ -18,20 +18,20 @@ const OrderIdScanner = () => {
     // ***************** exact inventory styles *******************
 
     const styleNumbers = [
-        30031, 30021, 30020, 24034, 24027, 24023, 24022, 19181, 19151, 19150,
-        19107, 19079, 19077, 19076, 19073, 19056, 19031, 19030, 19029, 19004,
-        18098, 18097, 18092, 18068, 18063, 18062, 18046, 18036, 18027, 18022,
-        18020, 18019, 18006, 18005, 18004, 17086, 17086, 17077, 17053, 17043,
-        17037, 17036, 17035, 17030, 17028, 17021, 17016, 17015, 17011, 17010,
-        17007, 17005, 16091, 16085, 16084, 16082, 16077, 16074, 16055, 16055,
-        16054, 16047, 16040, 16036, 16032, 16027, 16025, 16024, 16021, 16019,
-        16013, 15095, 15090, 15087, 15084, 15077, 15068, 15066, 15065, 15064,
-        15059, 15055, 15052, 15041, 15026, 15024, 15022, 15011, 14098, 14096,
-        14076, 14074, 14073, 14071, 14071, 14068, 14067, 14066, 14065, 14060,
-        14059, 14058, 14052, 14050, 14045, 14044, 14023, 14017, 14014, 14013,
-        14012, 13084, 13080, 13078, 13075, 13068, 13067, 13066, 13064, 13063,
-        13053, 13052, 13046, 13042, 13036, 13023, 13017, 13009, 12089, 12088,
-        12086, 12082, 12080, 12050, 12041, 12037
+        // 30031, 30021, 30020, 24034, 24027, 24023, 24022, 19181, 19151, 19150,
+        // 19107, 19079, 19077, 19076, 19073, 19056, 19031, 19030, 19029, 19004,
+        // 18098, 18097, 18092, 18068, 18063, 18062, 18046, 18036, 18027, 18022,
+        // 18020, 18019, 18006, 18005, 18004, 17086, 17086, 17077, 17053, 17043,
+        // 17037, 17036, 17035, 17030, 17028, 17021, 17016, 17015, 17011, 17010,
+        // 17007, 17005, 16091, 16085, 16084, 16082, 16077, 16074, 16055, 16055,
+        // 16054, 16047, 16040, 16036, 16032, 16027, 16025, 16024, 16021, 16019,
+        // 16013, 15095, 15090, 15087, 15084, 15077, 15068, 15066, 15065, 15064,
+        // 15059, 15055, 15052, 15041, 15026, 15024, 15022, 15011, 14098, 14096,
+        // 14076, 14074, 14073, 14071, 14071, 14068, 14067, 14066, 14065, 14060,
+        // 14059, 14058, 14052, 14050, 14045, 14044, 14023, 14017, 14014, 14013,
+        // 14012, 13084, 13080, 13078, 13075, 13068, 13067, 13066, 13064, 13063,
+        // 13053, 13052, 13046, 13042, 13036, 13023, 13017, 13009, 12089, 12088,
+        // 12086, 12082, 12080, 12050, 12041, 12037
     ];
 
     // Show status message
@@ -284,6 +284,24 @@ const OrderIdScanner = () => {
         }, 500);
     }, []);
 
+    // *********************** delete records *************************************
+
+    const deleteRecord = (orderId) => {
+        if (window.confirm("Are you sure you want to delete this record?")) {
+            storage.deleteRecord(orderId); // Yeh service method call karo
+            setRecords(storage.getRecords()); // Records update karo
+
+            showStatus(`Record #${orderId} deleted`, "info");
+
+            // Auto-focus after delete
+            setTimeout(() => {
+                if (orderidRef.current) {
+                    orderidRef.current.focus();
+                }
+            }, 100);
+        }
+    };
+
 
     if (loading) {
         return <p className="text-center">loading...</p>
@@ -417,19 +435,20 @@ const OrderIdScanner = () => {
                 {/* Records List */}
                 {records.length > 0 ? (
                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                        <div className="grid grid-cols-5 gap-4 px-6 py-3 bg-gray-50 border-b border-gray-200 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <div className="grid grid-cols-6 gap-4 px-6 py-3 bg-gray-50 border-b border-gray-200 text-xs font-medium text-gray-500 uppercase tracking-wider">
                             <div>Order ID</div>
                             <div>Style Number</div>
                             <div>Size</div>
                             <div>Color</div>
                             <div>Rack Space</div>
+                            <div>Action</div>
                         </div>
 
                         <div className="divide-y divide-gray-200">
                             {records.map((record, index) => (
                                 <div
                                     key={`${record.order_id}-${index}`}
-                                    className="grid grid-cols-5 gap-4 px-6 py-4 hover:bg-gray-50 transition-colors"
+                                    className="grid grid-cols-6 gap-4 px-6 py-4 hover:bg-gray-50 transition-colors"
                                 >
                                     <div className="font-mono text-sm font-medium text-blue-600">{record.order_id}</div>
                                     <div className="text-sm text-gray-900">{record.style_number}</div>
@@ -438,6 +457,9 @@ const OrderIdScanner = () => {
                                     <div className={`text-sm font-medium ${record.rack_space ? "text-green-600" : "text-gray-400 italic"}`}>
                                         {record.rack_space || "Not assigned"}
                                     </div>
+                                    <div className="text-sm text-gray-900"><button
+                                        onClick={() => deleteRecord(record.order_id)}
+                                        className="bg-red-400 text-white rounded-md py-2 px-4 cursor-pointer hover:bg-red-500 duration-75 ease-in">Delete</button> </div>
                                 </div>
                             ))}
                         </div>
